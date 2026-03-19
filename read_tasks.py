@@ -38,10 +38,12 @@ class Upid:
     def starttime_h(self):
         return strftime("%Y-%m-%d %H:%M:%S", localtime(self.starttime))
 
+
 class FilterArgs:
     since: None | int
     until: None | int
     filters: list[str]
+
 
 class Args:
     since: None | str = None
@@ -70,7 +72,9 @@ def parse_args() -> Args:
     parser.add_argument("-f", "--wtype-filter", action="append")
     parser.add_argument("--since", nargs="?")
     parser.add_argument("--until", nargs="?")
-    parser.add_argument("-g", "--grep", nargs="?", help="Only lists files containing this argument")
+    parser.add_argument(
+        "-g", "--grep", nargs="?", help="Only lists files containing this argument"
+    )
 
     args = Args()
     parser.parse_args(namespace=args)
@@ -106,7 +110,7 @@ def list_active(directory: str, args: FilterArgs) -> Iterable[Upid]:
 
 
 def contains(file: Path, query: str) -> bool:
-    with open(file, 'r') as fp:
+    with open(file, "r") as fp:
         # read all lines using readline()
         lines = fp.readlines()
         for row in lines:
@@ -115,6 +119,7 @@ def contains(file: Path, query: str) -> bool:
                 return True
 
     return False
+
 
 def print_active(upids: Iterable[Upid]) -> None:
     headers = ["starttime", "type", "path"]
