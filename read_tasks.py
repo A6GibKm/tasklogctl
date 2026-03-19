@@ -94,10 +94,25 @@ class Args:
 def parse_args() -> Args:
     parser = argparse.ArgumentParser(prog="Task Parser", description="Parses task logs")
 
-    parser.add_argument("-d", "--directory", type=Path)
-    parser.add_argument("-f", "--type-filter", action="append")
-    parser.add_argument("--since", nargs="?")
-    parser.add_argument("--until", nargs="?")
+    parser.add_argument(
+        "-d",
+        "--directory",
+        type=Path,
+        help="Where the tasks are stored. Defaults to /var/log/pve/tasks",
+        default=Path("/var/log/pve/tasks"),
+    )
+    parser.add_argument(
+        "-f",
+        "--type-filter",
+        action="append",
+        help="Filters. for example -f '105' for tasks related to the a guest with a VMID of '105' or 'qmsnapshot' for snapshot tasks",
+    )
+    parser.add_argument(
+        "--since",
+        nargs="?",
+        help="The starting date, for example '2025-11-24 15:24:11'",
+    )
+    parser.add_argument("--until", nargs="?", help="See --since")
     parser.add_argument(
         "-g",
         "--grep",
