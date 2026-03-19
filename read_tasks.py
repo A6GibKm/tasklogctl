@@ -19,36 +19,62 @@ from collections.abc import Iterable
 
 class Upid:
     inner = None
+    node: str
+    pid: int
+    # The Unix process start time from `/proc/pid/stat`
+    pstart: int
+    startime: None | int  # epoch
+    task_id: int
+    worker_type: str
+    worker_id: None | str
+    authid: str
+    rel_path: str
 
     def __init__(self, inner):
         self.path = inner
         self.upid = inner.name
 
         comps = self.upid.split(":")
+
         self.node = comps[1]
         self.pid = int(comps[2], 16)
         self.pstart = int(comps[3], 16)
-        self.task_id = int(comps[4], 16)
-        self.starttime = int(comps[5], 16)
-        self.wtype = comps[6]
-        self.authid = comps[7]
 
-        self.rel_path = f"{comps[3][-2:]}/{self.upid}"
+        is_pve = len(comps) == 9
+
+        if is_pve:
+            self.task_id = None
+            self.starttime = int(comps[4], 16)
+            self.worker_type = comps[5]
+            self.worker_id = comps[6]
+            self.authid = comps[7]
+        else:  # is a PBS
+            self.task_id = int(comps[4], 16)
+            self.starttime = int(comps[5], 16)
+            self.worker_type = comps[6]
+            self.worker_id = comps[7]
+            self.authid = comps[8]
 
     def starttime_h(self):
         return strftime("%Y-%m-%d %H:%M:%S", localtime(self.starttime))
 
+    def rel_path(self) -> Path:
+        return Path(self.path.parent.name).joinpath(self.path.name)
+
 
 class FilterArgs:
-    since: None | int
-    until: None | int
-    filters: list[str]
+    since: None | int = None
+    until: None | int = None
+    filters: list[str] = []
+    grep: list[str] = []
 
 
 class Args:
     since: None | str = None
     until: None | str = None
-    wtype_filter: list[str] = []
+    type_filter: list[str] = []
+    grep: list[str] = []
+    product: str = None
 
     def since_epoch(self) -> None | int:
         if since := self.since:
@@ -69,11 +95,15 @@ def parse_args() -> Args:
     parser = argparse.ArgumentParser(prog="Task Parser", description="Parses task logs")
 
     parser.add_argument("-d", "--directory", type=Path)
-    parser.add_argument("-f", "--wtype-filter", action="append")
+    parser.add_argument("-f", "--type-filter", action="append")
     parser.add_argument("--since", nargs="?")
     parser.add_argument("--until", nargs="?")
     parser.add_argument(
-        "-g", "--grep", nargs="?", help="Only lists files containing this argument"
+        "-g",
+        "--grep",
+        nargs="?",
+        help="Only lists files containing this expression",
+        action="append",
     )
 
     args = Args()
@@ -89,17 +119,22 @@ def list_active(directory: str, args: FilterArgs) -> Iterable[Upid]:
         return upid.starttime
 
     def filter_fn(upid):
-        if args.filters and upid.wtype not in args.filters:
+        if (
+            (filters := args.filters)
+            and upid.worker_type not in filters
+            and upid.worker_id not in filters
+        ):
             return False
 
-        if args.since and upid.starttime < args.since:
+        if (since := args.since) and upid.starttime < since:
             return False
 
-        if args.until and upid.starttime < args.until:
+        if (until := args.until) and upid.starttime > until:
             return False
 
-        if args.grep and not contains(upid.path, args.grep):
-            return False
+        for g in args.grep:
+            if not contains(upid.path, g):
+                return False
 
         return True
 
@@ -123,7 +158,7 @@ def contains(file: Path, query: str) -> bool:
 
 def print_active(upids: Iterable[Upid]) -> None:
     headers = ["starttime", "type", "path"]
-    columns = [[u.starttime_h(), u.wtype, f"'{u.rel_path}'"] for u in upids]
+    columns = [[u.starttime_h(), u.worker_type, f"'{u.rel_path()}'"] for u in upids]
     table = tabulate(columns, headers=headers)
     print(table)
 
@@ -134,7 +169,7 @@ def main():
     filter_args = FilterArgs()
     filter_args.since = args.since_epoch()
     filter_args.until = args.until_epoch()
-    filter_args.filters = args.wtype_filter
+    filter_args.filters = args.type_filter
     filter_args.grep = args.grep
 
     active = list_active(args.directory, filter_args)
