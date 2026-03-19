@@ -72,7 +72,7 @@ class FilterArgs:
 class Args:
     since: None | str = None
     until: None | str = None
-    type_filter: list[str] = []
+    filter: list[str] = []
     grep: list[str] = []
     product: str = None
 
@@ -103,7 +103,7 @@ def parse_args() -> Args:
     )
     parser.add_argument(
         "-f",
-        "--type-filter",
+        "--filter",
         action="append",
         help="Filters. for example -f '105' for tasks related to the a guest with a VMID of '105' or 'qmsnapshot' for snapshot tasks",
     )
@@ -184,7 +184,7 @@ def main():
     filter_args = FilterArgs()
     filter_args.since = args.since_epoch()
     filter_args.until = args.until_epoch()
-    filter_args.filters = args.type_filter
+    filter_args.filters = args.filter
     filter_args.grep = args.grep
 
     active = list_active(args.directory, filter_args)
