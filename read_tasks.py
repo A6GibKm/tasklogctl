@@ -24,7 +24,7 @@ class Upid:
     # The Unix process start time from `/proc/pid/stat`
     pstart: int
     startime: None | int  # epoch
-    task_id: int
+    task_id: int | None
     worker_type: str
     worker_id: None | str
     authid: str
@@ -74,7 +74,8 @@ class Args:
     until: None | str = None
     filter: list[str] = []
     grep: list[str] = []
-    product: str = None
+    product: str | None = None
+    directory: Path = Path("/var/log/pve/tasks")
 
     def since_epoch(self) -> None | int:
         if since := self.since:
@@ -127,7 +128,7 @@ def parse_args() -> Args:
     return args
 
 
-def list_active(directory: str, args: FilterArgs) -> Iterable[Upid]:
+def list_active(directory: Path, args: FilterArgs) -> Iterable[Upid]:
     upids = [Upid(p) for p in directory.glob("?*/*")]
 
     def sort_fn(upid):
