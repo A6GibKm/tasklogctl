@@ -109,6 +109,12 @@ def parse_args() -> Args:
         help="Filters. for example -f '105' for tasks related to the a guest with a VMID of '105' or 'qmsnapshot' for snapshot tasks",
     )
     parser.add_argument(
+        "-e",
+        "--exclude-filter",
+        action="append",
+        help="Exclude Filters. Similar to --filter but will exclude matches from the result",
+    )
+    parser.add_argument(
         "--since",
         nargs="?",
         help="The starting date, for example '2025-11-24 15:24:11'",
@@ -135,6 +141,11 @@ def list_active(directory: Path, args: FilterArgs) -> Iterable[Upid]:
         return upid.starttime
 
     def filter_fn(upid):
+        if (exclude_filters := args.exclude_filters) and (
+            upid.worker_type in exclude_filters or upid.worker_id in exclude_filters
+        ):
+            return False
+
         if (
             (filters := args.filters)
             and upid.worker_type not in filters
@@ -186,6 +197,7 @@ def main():
     filter_args.since = args.since_epoch()
     filter_args.until = args.until_epoch()
     filter_args.filters = args.filter
+    filter_args.exclude_filters = args.exclude_filter
     filter_args.grep = args.grep
 
     active = list_active(args.directory, filter_args)
