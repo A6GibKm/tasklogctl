@@ -88,7 +88,7 @@ class Args:
     exclude_filter: list[str] = []
     grep: list[str] = []
     product: str | None = None
-    directories: list[Path] = [Path("/var/log/pve/tasks")]
+    directories: list[Path] = []
 
     def since_epoch(self) -> None | EpochWithTz:
         if since := self.since:
@@ -238,7 +238,11 @@ def main():
     filter_args.exclude_filters = args.exclude_filter
     filter_args.grep = args.grep
 
-    active = list_active(args.directories, filter_args)
+    directories = [Path("/var/log/pve/tasks")]
+    if args.directories:
+        directories = args.directories
+
+    active = list_active(directories, filter_args)
     print_active(active, offset)
 
 
