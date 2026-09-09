@@ -94,8 +94,8 @@ class Args:
         if since := self.since:
             dt = parser.parse(since)
             epoch = EpochWithTz(dt.timestamp())
-            if tzinfo := dt.tzinfo:
-                epoch.offset = tzinfo._offset.seconds
+            if offset := dt.utcoffset():
+                epoch.offset = offset.total_seconds()
 
             return epoch
 
@@ -105,8 +105,8 @@ class Args:
         if until := self.until:
             dt = parser.parse(until)
             epoch = EpochWithTz(dt.timestamp())
-            if tzinfo := dt.tzinfo:
-                epoch.offset = tzinfo._offset.seconds
+            if offset := dt.utcoffset():
+                epoch.offset = offset.total_seconds()
 
             return epoch
 
