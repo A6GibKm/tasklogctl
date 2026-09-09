@@ -117,7 +117,7 @@ def parse_args() -> Args:
     parser = argparse.ArgumentParser(
         prog="Task Parser",
         description="Parses task logs",
-        epilog="An example parsing multiple directories with a called $hostname-task-logs and a +0100 offset:\n\nread_tasks.py --since '2026-08-10 00:00 +1' --until '2026-08-14 17:00 +1' -e vzdump -e hastart -e hastop -e vncproxy -f 140 -f 162 -f 186 -f 110 $(find -type d -name '*-task-logs' -exec echo '--directory {}/var/log/pve/tasks/' ';'| xargs)",
+        epilog="An example parsing multiple directories with a called $hostname-task-logs and a +0100 offset:\n\nread_tasks.py --since '2026-08-10 00:00 +1' --until '2026-08-14 17:00 +1' -e vzdump -e hastart -e hastop -e vncproxy -f 140 -f 162 -f 186 -f 110 $(find . -type d -name '*-task-logs' -printf '--directory %p/var/log/pve/tasks/\\n')",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
