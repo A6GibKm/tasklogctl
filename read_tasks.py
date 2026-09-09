@@ -10,11 +10,19 @@
 import argparse
 
 from dateutil import parser
-from time import strftime, localtime
+from time import strftime, localtime, gmtime
 from tabulate import tabulate
 from pathlib import Path
 
 from collections.abc import Iterable
+
+
+class EpochWithTz:
+    epoch: int = 0
+    offset: float | None = None
+
+    def __init__(self, epoch):
+        self.epoch = epoch
 
 
 class Upid:
@@ -55,8 +63,11 @@ class Upid:
             self.worker_id = comps[7]
             self.authid = comps[8]
 
-    def starttime_h(self):
-        return strftime("%Y-%m-%d %H:%M:%S", localtime(self.starttime))
+    def starttime_h(self, offset: float | None) -> str:
+        if offset is None:
+            return strftime("%Y-%m-%d %H:%M:%S", localtime(self.starttime))
+
+        return strftime("%Y-%m-%d %H:%M:%S", gmtime(self.starttime + offset))
 
     def rel_path(self) -> Path:
         return Path(self.path.parent.name).joinpath(self.path.name)
@@ -79,16 +90,24 @@ class Args:
     product: str | None = None
     directory: Path = Path("/var/log/pve/tasks")
 
-    def since_epoch(self) -> None | int:
+    def since_epoch(self) -> None | EpochWithTz:
         if since := self.since:
-            epoch = parser.parse(since).timestamp()
+            dt = parser.parse(since)
+            epoch = EpochWithTz(dt.timestamp())
+            if tzinfo := dt.tzinfo:
+                epoch.offset = tzinfo._offset.seconds
+
             return epoch
 
         return None
 
-    def until_epoch(self) -> None | int:
+    def until_epoch(self) -> None | EpochWithTz:
         if until := self.until:
-            epoch = parser.parse(until).timestamp()
+            dt = parser.parse(until)
+            epoch = EpochWithTz(dt.timestamp())
+            if tzinfo := dt.tzinfo:
+                epoch.offset = tzinfo._offset.seconds
+
             return epoch
 
         return None
@@ -119,7 +138,7 @@ def parse_args() -> Args:
     parser.add_argument(
         "--since",
         nargs="?",
-        help="The starting date, for example '2025-11-24 15:24:11'",
+        help="The starting date, for example '2025-11-24 15:24:11 +0100'",
     )
     parser.add_argument("--until", nargs="?", help="See --since")
     parser.add_argument(
@@ -185,9 +204,11 @@ def contains(file: Path, query: str) -> bool:
     return False
 
 
-def print_active(upids: Iterable[Upid]) -> None:
+def print_active(upids: Iterable[Upid], offset: float | None) -> None:
     headers = ["starttime", "type", "path"]
-    columns = [[u.starttime_h(), u.worker_type, f"'{u.rel_path()}'"] for u in upids]
+    columns = [
+        [u.starttime_h(offset), u.worker_type, f"'{u.rel_path()}'"] for u in upids
+    ]
     table = tabulate(columns, headers=headers)
     print(table)
 
@@ -196,14 +217,22 @@ def main():
     args = parse_args()
 
     filter_args = FilterArgs()
-    filter_args.since = args.since_epoch()
-    filter_args.until = args.until_epoch()
+    offset = None
+
+    if since_epoch := args.since_epoch():
+        filter_args.since = since_epoch.epoch
+        offset = since_epoch.offset
+
+    if until_epoch := args.until_epoch():
+        filter_args.until = until_epoch.epoch
+        offset = until_epoch.offset
+
     filter_args.filters = args.filter
     filter_args.exclude_filters = args.exclude_filter
     filter_args.grep = args.grep
 
     active = list_active(args.directory, filter_args)
-    print_active(active)
+    print_active(active, offset)
 
 
 if __name__ == "__main__":
