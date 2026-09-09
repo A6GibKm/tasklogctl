@@ -212,9 +212,7 @@ def contains(file: Path, query: str) -> bool:
 
 def print_active(upids: Iterable[Upid], offset: float | None) -> None:
     headers = ["starttime", "type", "path"]
-    columns = [
-        [u.starttime_h(offset), u.worker_type, f"{u.abs_path()}"] for u in upids
-    ]
+    columns = [[u.starttime_h(offset), u.worker_type, f"{u.abs_path()}"] for u in upids]
     table = tabulate(columns, headers=headers)
     print(table)
 
