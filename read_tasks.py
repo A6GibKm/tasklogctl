@@ -66,6 +66,7 @@ class FilterArgs:
     since: None | int = None
     until: None | int = None
     filters: list[str] = []
+    exclude_filters: list[str] = []
     grep: list[str] = []
 
 
@@ -73,6 +74,7 @@ class Args:
     since: None | str = None
     until: None | str = None
     filter: list[str] = []
+    exclude_filter: list[str] = []
     grep: list[str] = []
     product: str | None = None
     directory: Path = Path("/var/log/pve/tasks")
