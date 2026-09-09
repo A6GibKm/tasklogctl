@@ -36,7 +36,6 @@ class Upid:
     worker_type: str
     worker_id: None | str
     authid: str
-    rel_path: str
 
     def __init__(self, inner):
         self.path = inner
@@ -69,8 +68,8 @@ class Upid:
 
         return strftime("%Y-%m-%d %H:%M:%S", gmtime(self.starttime + offset))
 
-    def rel_path(self) -> Path:
-        return Path(self.path.parent.name).joinpath(self.path.name)
+    def abs_path(self) -> Path:
+        return Path(self.path)
 
 
 class FilterArgs:
@@ -214,7 +213,7 @@ def contains(file: Path, query: str) -> bool:
 def print_active(upids: Iterable[Upid], offset: float | None) -> None:
     headers = ["starttime", "type", "path"]
     columns = [
-        [u.starttime_h(offset), u.worker_type, f"'{u.rel_path()}'"] for u in upids
+        [u.starttime_h(offset), u.worker_type, f"{u.abs_path()}"] for u in upids
     ]
     table = tabulate(columns, headers=headers)
     print(table)
