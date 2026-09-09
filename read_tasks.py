@@ -88,7 +88,7 @@ class Args:
     exclude_filter: list[str] = []
     grep: list[str] = []
     product: str | None = None
-    directory: Path = Path("/var/log/pve/tasks")
+    directories: list[Path] = [Path("/var/log/pve/tasks")]
 
     def since_epoch(self) -> None | EpochWithTz:
         if since := self.since:
@@ -114,13 +114,20 @@ class Args:
 
 
 def parse_args() -> Args:
-    parser = argparse.ArgumentParser(prog="Task Parser", description="Parses task logs")
+    parser = argparse.ArgumentParser(
+        prog="Task Parser",
+        description="Parses task logs",
+        epilog="An example parsing multiple directories with a called $hostname-task-logs and a +0100 offset:\n\nread_tasks.py --since '2026-08-10 00:00 +1' --until '2026-08-14 17:00 +1' -e vzdump -e hastart -e hastop -e vncproxy -f 140 -f 162 -f 186 -f 110 $(find -type d -name '*-task-logs' -exec echo '--directory {}/var/log/pve/tasks/' ';'| xargs)",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
 
     parser.add_argument(
         "-d",
         "--directory",
         type=Path,
-        help="Where the tasks are stored. Defaults to /var/log/pve/tasks",
+        action="append",
+        dest="directories",
+        help="Where the tasks are stored. Defaults to /var/log/pve/tasks. Accepts multiple directories",
         default=Path("/var/log/pve/tasks"),
     )
     parser.add_argument(
@@ -155,8 +162,8 @@ def parse_args() -> Args:
     return args
 
 
-def list_active(directory: Path, args: FilterArgs) -> Iterable[Upid]:
-    upids = [Upid(p) for p in directory.glob("?*/*")]
+def list_active(directories: list[Path], args: FilterArgs) -> Iterable[Upid]:
+    upids = [Upid(p) for directory in directories for p in directory.glob("?*/*")]
 
     def sort_fn(upid):
         return upid.starttime
@@ -231,7 +238,7 @@ def main():
     filter_args.exclude_filters = args.exclude_filter
     filter_args.grep = args.grep
 
-    active = list_active(args.directory, filter_args)
+    active = list_active(args.directories, filter_args)
     print_active(active, offset)
 
 
