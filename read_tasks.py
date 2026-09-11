@@ -127,7 +127,6 @@ def parse_args() -> Args:
         action="append",
         dest="directories",
         help="Where the tasks are stored. Defaults to /var/log/pve/tasks. Accepts multiple directories",
-        default=Path("/var/log/pve/tasks"),
     )
     parser.add_argument(
         "-f",
