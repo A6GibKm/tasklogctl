@@ -162,7 +162,7 @@ def parse_args() -> Args:
 
 
 def list_active(directories: list[Path], args: FilterArgs) -> Iterable[Upid]:
-    upids = [Upid(p) for directory in directories for p in directory.glob("?*/*")]
+    upids = [Upid(p) for directory in directories for p in directory.glob("?*/UPID:*")]
 
     def sort_fn(upid):
         return upid.starttime
