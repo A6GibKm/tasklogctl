@@ -10,7 +10,7 @@
 import argparse
 
 from dateutil import parser
-from time import strftime, localtime, gmtime
+from time import strftime, gmtime
 from tabulate import tabulate
 from pathlib import Path
 
@@ -19,7 +19,7 @@ from collections.abc import Iterable
 
 class EpochWithTz:
     epoch: int = 0
-    offset: float | None = None
+    offset: float = 0.0
 
     def __init__(self, epoch):
         self.epoch = epoch
@@ -62,10 +62,7 @@ class Upid:
             self.worker_id = comps[7]
             self.authid = comps[8]
 
-    def starttime_h(self, offset: float | None) -> str:
-        if offset is None:
-            return strftime("%Y-%m-%d %H:%M:%S", localtime(self.starttime))
-
+    def starttime_h(self, offset: float) -> str:
         return strftime("%Y-%m-%d %H:%M:%S", gmtime(self.starttime + offset))
 
     def abs_path(self) -> Path:
@@ -209,7 +206,7 @@ def contains(file: Path, query: str) -> bool:
     return False
 
 
-def print_active(upids: Iterable[Upid], offset: float | None) -> None:
+def print_active(upids: Iterable[Upid], offset: float) -> None:
     headers = ["starttime", "type", "path"]
     columns = [[u.starttime_h(offset), u.worker_type, f"{u.abs_path()}"] for u in upids]
     table = tabulate(columns, headers=headers)
@@ -220,7 +217,7 @@ def main():
     args = parse_args()
 
     filter_args = FilterArgs()
-    offset = None
+    offset = 0.0
 
     if since_epoch := args.since_epoch():
         filter_args.since = since_epoch.epoch
