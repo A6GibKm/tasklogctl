@@ -88,7 +88,6 @@ def read_last_line(path: Path) -> str:
                 f.seek(-2, os.SEEK_CUR)
         except OSError:
             f.seek(0)
-            return ""
 
         return f.readline().decode()
 
