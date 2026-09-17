@@ -68,6 +68,30 @@ class Upid:
     def abs_path(self) -> Path:
         return Path(self.path)
 
+    def report_status(self) -> str:
+        line = read_last_line(self.path)
+        if line.startswith("TASK OK"):
+            return "TASK OK"
+        elif line.startswith("TASK ERR"):
+            return line
+
+        return ""
+
+
+def read_last_line(path: Path) -> str:
+    import os
+
+    with path.open("rb") as f:
+        try:  # catch OSError in case of a one line file
+            f.seek(-2, os.SEEK_END)
+            while f.read(1) != b"\n":
+                f.seek(-2, os.SEEK_CUR)
+        except OSError:
+            f.seek(0)
+            return ""
+
+        return f.readline().decode()
+
 
 class FilterArgs:
     since: None | int = None
@@ -207,8 +231,11 @@ def contains(file: Path, query: str) -> bool:
 
 
 def print_active(upids: Iterable[Upid], offset: float) -> None:
-    headers = ["starttime", "type", "path"]
-    columns = [[u.starttime_h(offset), u.worker_type, f"{u.abs_path()}"] for u in upids]
+    headers = ["starttime", "type", "path", "status"]
+    columns = [
+        [u.starttime_h(offset), u.worker_type, u.abs_path(), u.report_status()]
+        for u in upids
+    ]
     table = tabulate(columns, headers=headers)
     print(table)
 
